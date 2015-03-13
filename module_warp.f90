@@ -107,6 +107,7 @@ CONTAINS
       REAL*8, INTENT(IN) :: pars(npars)
       
       REAL*8 :: warpedprior(warpndata), warpedmoms(warpnmom)
+      REAL*8 :: vec_diff(warpnmom), dummy(warpnmom)
       REAL*8 specdist, specw2
       CHARACTER*10 srun
       
@@ -133,14 +134,15 @@ CONTAINS
       CALL get_moments(warpnmom, warpndata, warpedprior, warpdomega, warpedmoms)
 
       chi2_warp=0.0d0
-      DO i=1,warpnmom
-        IF (covariance(1,1).ne. 0.d0) THEN
-        ! weight only by the diagonal for now -- the variance
-           chi2_warp = chi2_warp + (warpref(i) - warpedmoms(i))**2/covariance(i,i)
-        ELSE
+      IF (covariance(1,1).ne. 0.d0) THEN
+         vec_diff=warpref - warpedmoms
+         dummy=MATMUL(invcov, vec_diff)
+         chi2_warp=dot_product(vec_diff, dummy)
+      ELSE
+         DO i=1,warpnmom
            chi2_warp = chi2_warp + (warpref(i) - warpedmoms(i))**2
-        ENDIF
-      ENDDO
+         ENDDO
+      ENDIF
       
       specdist = 0.0d0
       specw2 = 0.0d0
