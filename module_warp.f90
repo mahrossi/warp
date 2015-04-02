@@ -195,7 +195,7 @@ CONTAINS
       chi2reg = emd(warpedprior,yref,warpndata)
       !chi2reg = regemw(warp,dwarp,yref,fwarp,warpndata)*1d-5 !(reg1(warp,warpndata) * 1d-6 + reg2(dwarp,warpndata) * 1d-6  + reg3(dwarp, warpndata) * 0d-17 & 
                 !            + reg2(fwarp, warpndata) *1d-6 + reg3(fwarp, warpndata) * 0d-17)
-      chi2_warp = (chi2_warp + chi2reg*chi2alpha)*1e10
+      chi2_warp = (chi2_warp + chi2reg*chi2alpha)
       
       ICALLS = ICALLS + 1
       !if (ICALLS>10) call exit(0)
@@ -203,22 +203,41 @@ CONTAINS
    
    REAL*8 FUNCTION emd(f1, f2, ndim)
    ! Implements earth mover distance in 1D
-      REAL*8 f1(ndim), f2(ndim), cf1, cf2
+   !   REAL*8 f1(ndim), f2(ndim), cf1, cf2, norm
+      REAL*8 :: f1(ndim), f2(ndim), cf1(ndim), cf2(ndim), norm
       INTEGER i, ndim
       
-      cf1=0.5*f1(1)
-      cf2=0.5*f2(1)
-      emd=abs(cf1-cf2)*0.5
-      do i=2, ndim-1 
-         cf1 = cf1 + f1(i)
-         cf2 = cf2 + f2(i)
-         emd = emd + abs(cf1-cf2)
+!      cf1=0.5*f1(1)
+!      cf2=0.5*f2(1)
+!      emd=abs(cf1-cf2)*0.5
+!      do i=2, ndim-1 
+!         cf1 = cf1 + f1(i)
+!         cf2 = cf2 + f2(i)
+!         emd = emd + abs(cf1-cf2)
+!      enddo
+!      cf1 = cf1 + f1(ndim)*0.5 ! <- ?
+!      cf2 = cf2 + f2(ndim)*0.5 ! <- ?
+!      emd=emd+abs(cf1-cf2)*0.5
+
+      norm=f1(1)*0.5 
+      cf1(:)=0.d0
+      cf2(:)=0.d0
+      cf1(1)=f1(1)
+      cf2(1)=f2(1)
+      do i=2, ndim
+         norm=norm+f1(i)
+         cf1(i)=cf1(i-1)+f1(i)
+         cf2(i)=cf2(i-1)+f2(i)
       enddo
-      cf1 = cf1 + f1(ndim)*0.5
-      cf2 = cf2 + f2(ndim)*0.5
-      emd=emd+abs(cf1-cf2)*0.5
-      
-      emd = emd * warpdomega
+      norm=norm+f1(ndim)*0.5
+
+      emd=0.5*abs(cf1(1)-cf2(1))
+      do i=2, ndim-1
+         emd=emd+abs(cf1(i)-cf2(i))
+      enddo
+      emd=0.5*abs(cf1(ndim)-cf2(ndim))
+
+      emd = emd * warpdomega / (norm*warpdomega)
    END FUNCTION
    
    
@@ -282,4 +301,19 @@ CONTAINS
       enddo
       reg3 = reg3 * warpdomega
    END FUNCTION
+
+!   REAL*8 FUNCTION regentropy(fun, ndim)
+!      
+!   ! Implements regularization \int (W''[w])**2 dw
+!      REAL*8 fun(ndim)
+!      INTEGER i, ndim
+!      REAL*8 d2
+!      
+!      reg3=0
+!      do i=2, warpndata-1
+!         d2 = ((fun(i+1)-fun(i-1))/(2.0*warpdomega))**2.d0
+!         reg3=reg3+ d2 * xref(i)
+!      enddo
+!      reg3 = reg3 * warpdomega
+!   END FUNCTION
 END MODULE
