@@ -7,7 +7,7 @@ IMPLICIT NONE
 INTEGER :: iter,ndim
 real*8, external :: fun
 REAL*8 :: ftol,vertices(ndim+1,ndim),fvals(ndim+1),funk,TINY, dummy
-PARAMETER (TINY=1.e-10) 
+PARAMETER (TINY=1.e-11) 
 ! EXTERNAL funk
 ! MR: I will transform funk into a call to an external routine get_fn, with
 ! the function chosen by 'choice', which is a global variable in the fn module

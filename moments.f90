@@ -13,7 +13,7 @@ PROGRAM moments
    CHARACTER*256 :: priorfile, exactfile, covfile, parsfile
    REAL*8 :: omfac
    REAL*8, ALLOCATABLE :: fixpars(:), inpars(:)
-   INTEGER i, j, k, niter, nalpha, ngauss
+   INTEGER i, j, k, niter, nalpha, ngauss, pl
    REAL*8 :: chi2, regalpha, falpha, temp
    REAL*8, ALLOCATABLE :: simplex(:,:), simplexval(:)
    LOGICAL :: exist
@@ -78,11 +78,25 @@ PROGRAM moments
    
    ! try to compute warp
    ALLOCATE(fixpars(ngauss), inpars(ngauss), refpars(ngauss))
-   
-   do i=1,ngauss
+ 
+   ! initialize fixpars in case they were not initialized
+   ! RANDOM INIT:  
+   ! do i=1,ngauss
+   !    fixpars(i)=(rand()-0.5)*0.01
+   !    !fixpars(i)=(rand())*10
+   ! enddo
+   ! INIT WITH WARP 1 to 1 with the original grid:
+    do i=1,ngauss/2
+      pl=nprior/ngauss*i
+      fixpars(i)=domega*(pl-1)
+    enddo
+   ! multiplying function keeps the old random init
+    do i=(ngauss/2)+1,ngauss
       fixpars(i)=(rand()-0.5)*0.01
-      !fixpars(i)=(rand())*10
-   enddo
+    enddo
+   ! END INIT -- if there is a file it is read below 
+   ! and it overwrites this
+   write(*,*) 'fixi', fixpars
    
    inpars = 0.0d0
    refpars = 0.0d0
@@ -95,35 +109,55 @@ PROGRAM moments
    ENDIF
    
    ALLOCATE(simplex(ngauss+1,ngauss), simplexval(ngauss+1))
-   write(*,*) 'fixpars', fixpars
-   call srand(12345) 
-   do i=1,ngauss+1
-      do j=1,ngauss
-        simplex(i,j)=fixpars(j)*(1+(rand()-0.5)*0.1)
-      enddo
-!      simplexval(i)=chi2_gauss(simplex(i,:),ngauss)      
-      simplexval(i)=chi2_warp(simplex(i,:),ngauss)      
-   enddo
    
+   call srand(12345) 
+!  COMPLETELY RANDOM INITIALIZATION
+!   do i=1,ngauss+1
+!      do j=1,ngauss
+!        simplex(i,j)=fixpars(j)*(1+(rand()-0.5)*0.1)
+!      enddo
+!!      simplexval(i)=chi2_gauss(simplex(i,:),ngauss)      
+!      simplexval(i)=chi2_warp(simplex(i,:),ngauss)      
+!   enddo
+! LESS RANDOM INITIALIZATION
+   do i=1,ngauss+1
+      simplex(i,:)=fixpars(:)
+      if (i.gt.1) then
+         simplex(i,i-1)=fixpars(i)+fixpars(i)*(1+(rand()-0.5)*0.1)
+      endif
+      simplexval(i)=chi2_warp(simplex(i,:),ngauss)
+   enddo
+
+
    if (nalpha .gt. 0) THEN
       OPEN(1234, FILE="LCURVE",STATUS="unknown")   
       do k=1,nalpha
          chi2alpha = regalpha
          write (*,*) "Starting minimization with alpha = ", chi2alpha
-      do i=1,ngauss+1
-         do j=1,ngauss
-           !simplex(i,j)=simplex(i,j)*(1+(rand()-0.5)*0.1)
-           simplex(i,j)=simplex(i,j)*(1+(rand()-0.5)*0.5) ! randomizes a bit the simplex 
-           !simplex(i,j)=fixpars(i)*(1+(rand()-0.5))+fixpars(j)
-         enddo
-!         simplexval(i)=chi2_gauss(simplex(i,:),ngauss)      
-         simplexval(i)=chi2_warp(simplex(i,:),ngauss)      
-      enddo
+! SIMPLEX WOULD HERE BE RANDOMIZED EVEN FURTHER     
+!      do i=1,ngauss+1
+!         do j=1,ngauss
+!           !simplex(i,j)=simplex(i,j)*(1+(rand()-0.5)*0.1)
+!           simplex(i,j)=simplex(i,j)*(1+(rand()-0.5)*0.5) ! randomizes a bit the simplex 
+!           !simplex(i,j)=fixpars(i)*(1+(rand()-0.5))+fixpars(j)
+!         enddo
+!!         simplexval(i)=chi2_gauss(simplex(i,:),ngauss)      
+!         simplexval(i)=chi2_warp(simplex(i,:),ngauss)      
+!      enddo
+! JUST UNCOMMENT ABOVE AND COMMENT LAST BLOCK TO GO BACK
          irun = k
 !         CALL mebs_dhsimplex(chi2_gauss, ngauss, simplex, simplexval, 1d-7, niter)
-         CALL mebs_dhsimplex(chi2_warp, ngauss, simplex, simplexval, 1d-14, niter)
+         CALL mebs_dhsimplex(chi2_warp, ngauss, simplex, simplexval, 1d-10, niter)
          write(1234,*) chi2alpha, chi2val, chi2reg
          regalpha = regalpha * falpha
+! RESTART AND RERANDOMIZE
+         do i=1,ngauss+1
+            if (i.gt.1) then
+               simplex(i,i-1)=simplex(i, i-1)+simplex(i, i-1)*(1+(rand()-0.5)*0.1)
+            endif
+            simplexval(i)=chi2_warp(simplex(i,:),ngauss)
+         enddo
+! COMMENT THIS BLOCK AND UNCOMMENT ABOVE IF NEEDED
       enddo
       CLOSE(1234)
    ELSE

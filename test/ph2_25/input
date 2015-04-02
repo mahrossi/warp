@@ -1,0 +1,12 @@
+&input
+   priorfile = 'prior.dat'
+   exactfile = 'exact.dat'
+   covfile = 'cov_convert.dat'
+   temp = 25 
+   ngauss = 20 
+   regalpha=1e-3
+   nalpha = 20
+!nalpha = 0
+!regalpha = 5.E-007
+   falpha = 0.5
+&end
