@@ -177,7 +177,7 @@ CONTAINS
       ENDIF
       write(666,*) "# ", warpnmom, chi2_warp
       DO i=1,warpnmom
-         write(666,*) i, warpref(i), warpedmoms(i)
+         write(666,*) i, warpedmoms(i), warpref(i)-warpedmoms(i)
       ENDDO
       CLOSE(666)
       write(*,*) "Area is ", sum(warpref)-0.5*(warpref(1)+warpref(warpnmom)), &

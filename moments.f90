@@ -148,7 +148,7 @@ PROGRAM moments
          irun = k
 !         CALL mebs_dhsimplex(chi2_gauss, ngauss, simplex, simplexval, 1d-7, niter)
          CALL mebs_dhsimplex(chi2_warp, ngauss, simplex, simplexval, 1d-10, niter)
-         write(1234,*) chi2alpha, chi2val, chi2reg
+         write(1234,*) chi2alpha, dlog(chi2val), dlog(chi2reg)
          regalpha = regalpha * falpha
 ! RESTART AND RERANDOMIZE
          do i=1,ngauss+1
